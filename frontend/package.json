@@ -1,0 +1,13 @@
+{
+  "name": "frontend",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "^0.2.0"
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.0.3",
+    "protobufjs": "^7.1.2"
+  }
+}
