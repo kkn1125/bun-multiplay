@@ -39,6 +39,10 @@ class Socket implements SocketEntity {
     console.log(e);
   }
 
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView) {
+    this.ws?.send(data);
+  }
+
   // open: (e) => void;
   // message: (message) => void;
   // error: (error) => void;

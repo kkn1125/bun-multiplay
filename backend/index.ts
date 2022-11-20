@@ -1,73 +1,40 @@
-import { createRequire } from "module";
-import ws from "ws";
+import { Server, ServerWebSocket } from "bun";
 
-declare interface Bun {}
-
-const CLIENTS_TO_WAIT_FOR = parseInt(process.env.CLIENTS_COUNT || "", 10) || 16;
-var remainingClients = CLIENTS_TO_WAIT_FOR;
-const COMPRESS = process.env.COMPRESS === "1";
-const port = process.env.PORT || 4001;
+const port = Number(process.env.SOCKET_PORT) || 3000;
 
 const server = Bun.serve({
   port: port,
   websocket: {
-    open(ws: {
-      subscribe: (arg0: string) => void;
-      data: { name: any };
-      publishText: (arg0: string, arg1: string) => void;
-    }) {
-      ws.subscribe("room");
-
-      remainingClients--;
-      console.log(`${ws.data.name} connected (${remainingClients} remain)`);
-
-      if (remainingClients === 0) {
-        console.log("All clients connected");
-        setTimeout(() => {
-          console.log('Starting benchmark by sending "ready" message');
-          ws.publishText("room", `ready`);
-        }, 100);
-      }
+    open(ws: any) {
+      console.log("connection!");
+      ws.subscribe("broadcast");
+      ws.send("test");
     },
-    message(
-      ws: {
-        data: { name: any };
-        publishText: (arg0: string, arg1: string) => number;
-      },
-      msg: any
-    ) {
-      const out = `${ws.data.name}: ${msg}`;
-      if (ws.publishText("room", out) !== out.length) {
-        throw new Error("Failed to publish message");
-      }
+    message(ws: ServerWebSocket<any>, message: string | Uint8Array) {
+      console.log(ws);
+      console.log(message);
     },
-    close(ws: any) {
-      remainingClients++;
+    close(ws: ServerWebSocket) {
+      // console.log(ws);
     },
 
     perMessageDeflate: false,
   },
 
-  fetch(
-    req: { url: string | URL },
-    server: { upgrade: (arg0: any, arg1: { data: { name: string } }) => any }
-  ) {
+  fetch(req: Request, server: Server) {
+    console.log(req);
     if (
       server.upgrade(req, {
         data: {
-          name:
-            new URL(req.url).searchParams.get("name") ||
-            "Client #" + (CLIENTS_TO_WAIT_FOR - remainingClients),
+          name: "",
         },
       })
-    )
+    ) {
       return;
+    }
 
     return new Response("Error");
   },
 });
 
-console.log(
-  `Waiting for ${remainingClients} clients to connect...\n`,
-  `  http://${server.hostname}:${port}/`
-);
+console.log(`http://${server.hostname}:${port}/`);

@@ -7,7 +7,7 @@ const canvas = document.querySelector("#app");
 const app = new Core({
   el: "#app",
 });
-console.log(import.meta.env);
+
 const socket = new WS({
   host: import.meta.env.V_HOST || "localhost",
   port: import.meta.env.V_PORT || 3000,
@@ -16,7 +16,8 @@ const socket = new WS({
   },
 });
 
-console.log(app);
-console.log(socket);
+setTimeout(() => {
+  socket.send("tlqkf");
+}, 1000);
 
-console.log(canvas);
+app.addSocket(socket);

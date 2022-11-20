@@ -4,7 +4,7 @@
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development nodemon -L --watch src --exec 'npx' 'ts-node' index.ts"
+    "dev": "cross-env NODE_ENV=development nodemon -L --watch ./ --exec 'bun' '--hot' index.ts"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
