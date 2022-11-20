@@ -1,73 +1,73 @@
-import { connection } from "./src/assets/scripts/mariadb.js";
+import { createRequire } from "module";
 import ws from "ws";
 
-// See ./README.md for instructions on how to run this benchmark.
-const port = process.env.PORT || 3000;
+declare interface Bun {}
+
 const CLIENTS_TO_WAIT_FOR = parseInt(process.env.CLIENTS_COUNT || "", 10) || 16;
+var remainingClients = CLIENTS_TO_WAIT_FOR;
+const COMPRESS = process.env.COMPRESS === "1";
+const port = process.env.PORT || 4001;
 
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-let WebSocketServer = require("ws").Server,
-  config = {
-    host: "0.0.0.0",
-    port,
-  },
-  wss = new WebSocketServer(config, function () {
-    console.log(`Waiting for ${CLIENTS_TO_WAIT_FOR} clients to connect..`);
-  });
+const server = Bun.serve({
+  port: port,
+  websocket: {
+    open(ws: {
+      subscribe: (arg0: string) => void;
+      data: { name: any };
+      publishText: (arg0: string, arg1: string) => void;
+    }) {
+      ws.subscribe("room");
 
-let clients: any[] = [];
+      remainingClients--;
+      console.log(`${ws.data.name} connected (${remainingClients} remain)`);
 
-wss.on(
-  "connection",
-  function (
-    ws: {
-      on: (
-        arg0: string,
-        arg1: { (message: any): void; (ws: any): void }
-      ) => void;
-    },
-    { url }: any
-  ) {
-    const name = new URL(
-      new URL(url, "http://localhost:3000")
-    ).searchParams.get("name");
-    console.log(
-      `${name} connected (${CLIENTS_TO_WAIT_FOR - clients.length} remain)`
-    );
-    clients.push(ws);
-
-    ws.on("message", function (message: any) {
-      const out = `${name}: ${message}`;
-      for (let client of clients) {
-        client.send(out);
+      if (remainingClients === 0) {
+        console.log("All clients connected");
+        setTimeout(() => {
+          console.log('Starting benchmark by sending "ready" message');
+          ws.publishText("room", `ready`);
+        }, 100);
       }
-    });
+    },
+    message(
+      ws: {
+        data: { name: any };
+        publishText: (arg0: string, arg1: string) => number;
+      },
+      msg: any
+    ) {
+      const out = `${ws.data.name}: ${msg}`;
+      if (ws.publishText("room", out) !== out.length) {
+        throw new Error("Failed to publish message");
+      }
+    },
+    close(ws: any) {
+      remainingClients++;
+    },
 
-    // when a connection is closed
-    ws.on("close", function (ws: any) {
-      clients.splice(clients.indexOf(ws), 1);
-    });
+    perMessageDeflate: false,
+  },
 
-    if (clients.length === CLIENTS_TO_WAIT_FOR) {
-      sendReadyMessage();
-    }
-  }
+  fetch(
+    req: { url: string | URL },
+    server: { upgrade: (arg0: any, arg1: { data: { name: string } }) => any }
+  ) {
+    if (
+      server.upgrade(req, {
+        data: {
+          name:
+            new URL(req.url).searchParams.get("name") ||
+            "Client #" + (CLIENTS_TO_WAIT_FOR - remainingClients),
+        },
+      })
+    )
+      return;
+
+    return new Response("Error");
+  },
+});
+
+console.log(
+  `Waiting for ${remainingClients} clients to connect...\n`,
+  `  http://${server.hostname}:${port}/`
 );
-
-function sendReadyMessage() {
-  console.log("All clients connected");
-  setTimeout(() => {
-    console.log("Starting benchmark");
-    for (let client of clients) {
-      client.send(`ready`);
-    }
-  }, 100);
-}
-
-connection
-  ?.promise()
-  .query("SELECT * FROM user")
-  .then(([rows, fields]) => {
-    console.log(rows);
-  });
