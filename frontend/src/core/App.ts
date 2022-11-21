@@ -7,23 +7,15 @@ interface AppEntity {
   render: (time: number) => void;
 }
 
-// interface Scene {
-//   [key: number]: object;
-// }
-
-class Scene extends Array {
-  // #stack: any[] = [];
-  add(...args: any[]) {
-    this.push(...args);
-  }
-
-  // out() {
-  //   return this.#stack;
-  // }
-
-  size() {
-    return this.length;
-  }
+interface User {
+  id: number;
+  nickname: string;
+  x: number;
+  y: number;
+  size: {
+    x: number;
+    y: number;
+  };
 }
 
 const SIZE = {
@@ -45,7 +37,7 @@ let ws: Socket;
 class App implements AppEntity {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private scene = new Scene();
+  private scene: User[] = [];
   private sockets = new Map();
 
   constructor(el: string) {
@@ -109,7 +101,7 @@ class App implements AppEntity {
   }
 
   setupModel() {
-    this.scene.add({
+    this.scene.push({
       id: this.sockets.get(ws),
       nickname: "test",
       x: initialPosition.x,
@@ -147,7 +139,7 @@ class App implements AppEntity {
       }
     }
 
-    for (let i = 0; i < this.scene.size(); i++) {
+    for (let i = 0; i < this.scene.length; i++) {
       this.ctx.fillRect(
         this.scene[i].x,
         this.scene[i].y,

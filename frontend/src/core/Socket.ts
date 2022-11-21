@@ -1,4 +1,7 @@
 import { generateParamSyntax } from "../assets/utils/tool";
+import dev from "./dev";
+
+let isFirst = false;
 
 interface SocketEntity {
   open: (e: any) => void;
@@ -14,29 +17,57 @@ interface SocketProps {
 }
 
 class Socket implements SocketEntity {
+  private host: string;
+  private port: string | number;
+  private params: string | object;
+  private parameters: string | undefined;
   private ws: WebSocket | null = null;
 
   constructor({ host, port, params }: SocketProps) {
-    const parameters = generateParamSyntax(params);
-    this.ws = new WebSocket(`ws://${host}:${port}/${params ? parameters : ""}`);
+    this.host = host;
+    this.port = port;
+    this.params = params;
+    try {
+      this.parameters = generateParamSyntax(params);
+    } catch (e) {
+      throw new Error("not available the parameter's key or value");
+    }
+  }
+
+  getConnection() {
+    if (isFirst) {
+      dev.log("socket re-connection");
+    }
+    if (!isFirst) {
+      dev.log("socket fisrt-connection");
+      isFirst = true;
+    }
+    this.ws = new WebSocket(
+      `ws://${this.host}:${this.port}/${this.parameters}`
+    );
     this.ws.binaryType = "arraybuffer";
-    this.ws.onopen = this.open;
-    this.ws.onmessage = this.message;
-    this.ws.onerror = this.error;
-    this.ws.onclose = this.close;
+    this.ws.onopen = this.open.bind(this);
+    this.ws.onmessage = this.message.bind(this);
+    this.ws.onerror = this.error.bind(this);
+    this.ws.onclose = this.close.bind(this);
   }
 
   open(e: any) {
-    console.log(e);
+    // dev.log(e);
+    this.send("test open");
   }
   message(message: any) {
-    console.log(message);
+    dev.log(message);
   }
   error(e: any) {
-    console.log(e);
+    // dev.log(e);
+    dev.log("error!");
+    this.getConnection.call(this);
   }
   close(e: any) {
-    console.log(e);
+    // dev.log(e);
+    dev.log("close!");
+    this.getConnection.call(this);
   }
 
   send(data: string | ArrayBufferLike | Blob | ArrayBufferView) {

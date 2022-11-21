@@ -1,20 +1,23 @@
-import { Server, ServerWebSocket } from "bun";
+import { serve, Server, ServerWebSocket } from "bun";
 
 const port = Number(process.env.SOCKET_PORT) || 3000;
 
-const server = Bun.serve({
+const server = serve({
   port: port,
   websocket: {
-    open(ws: any) {
+    open(ws) {
       console.log("connection!");
       ws.subscribe("broadcast");
-      ws.send("test");
+      ws.sendText("server connect");
     },
-    message(ws: ServerWebSocket<any>, message: string | Uint8Array) {
+    message(ws, message) {
       console.log(ws);
       console.log(message);
     },
-    close(ws: ServerWebSocket) {
+    drain(ws) {
+      console.log(ws);
+    },
+    close(ws) {
       // console.log(ws);
     },
 

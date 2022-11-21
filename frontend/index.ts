@@ -16,8 +16,8 @@ const socket = new WS({
   },
 });
 
-setTimeout(() => {
-  socket.send("tlqkf");
-}, 1000);
+socket.getConnection();
 
 app.addSocket(socket);
+
+export { app };
